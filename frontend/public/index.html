@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>EV Fleet Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── Header ── -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo"><span class="logo-bolt">⚡</span><span class="logo-text">EV<em>Fleet</em></span></div>
+      <div class="conn-badge"><span class="conn-dot" id="connDot"></span><span id="connLabel">Connecting…</span></div>
+    </div>
+    <div class="header-center">
+      <div class="fleet-summary">
+        <div class="fs-item"><span id="fsTotal">0</span><span class="fs-lbl">vehicles</span></div>
+        <div class="fs-sep"></div>
+        <div class="fs-item fs-drive"><span id="fsDriving">0</span><span class="fs-lbl">driving</span></div>
+        <div class="fs-sep"></div>
+        <div class="fs-item fs-alert"><span id="fsAlert">0</span><span class="fs-lbl">alerts</span></div>
+        <div class="fs-sep"></div>
+        <div class="fs-item fs-idle"><span id="fsIdle">0</span><span class="fs-lbl">idle</span></div>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="hdr-btn" id="addVehicleBtn">+ Add Vehicle</button>
+      <button class="hdr-btn danger" id="closeDetailBtn" style="display:none">✕ Close</button>
+    </div>
+  </header>
+
+  <!-- ── Global Alert Banner ── -->
+  <div class="alert-banner" id="alertBanner">
+    <span class="ab-icon">⚠</span>
+    <span id="alertBannerMsg">Speed limit exceeded!</span>
+    <span class="ab-close" onclick="dismissBanner()">✕</span>
+  </div>
+
+  <!-- ── Add Vehicle Modal ── -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-title">Add New Vehicle</div>
+      <div class="modal-field">
+        <label>Vehicle ID (single letter)</label>
+        <input type="text" id="newVehicleId" maxlength="2" placeholder="e.g. F"/>
+      </div>
+      <div class="modal-field">
+        <label>Vehicle Name</label>
+        <input type="text" id="newVehicleName" placeholder="e.g. Ford F-150 Lightning"/>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+        <button class="btn-add" onclick="addVehicle()">Add Vehicle</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Main ── -->
+  <main class="main" id="mainLayout">
+
+    <!-- Fleet Grid -->
+    <section class="fleet-section" id="fleetSection">
+      <div class="section-hdr">
+        <span class="section-title">Fleet Overview</span>
+        <div class="filter-tabs" id="filterTabs">
+          <button class="ftab active" data-filter="all">All</button>
+          <button class="ftab" data-filter="driving">Driving</button>
+          <button class="ftab" data-filter="overspeed">Alerts</button>
+          <button class="ftab" data-filter="idle">Idle</button>
+        </div>
+      </div>
+      <div class="fleet-grid" id="fleetGrid">
+        <div class="fleet-empty">Waiting for vehicles…</div>
+      </div>
+    </section>
+
+    <!-- Detail Panel (hidden until a vehicle is selected) -->
+    <section class="detail-section" id="detailSection" style="display:none">
+      <div class="detail-header">
+        <div>
+          <div class="detail-name" id="detailName">Vehicle A</div>
+          <div class="detail-sub" id="detailSub">Select a vehicle to inspect</div>
+        </div>
+        <div class="mode-chips" id="modeChips">
+          <button class="chip" data-mode="eco">Eco</button>
+          <button class="chip active" data-mode="normal">Normal</button>
+          <button class="chip" data-mode="sport">Sport</button>
+        </div>
+      </div>
+
+      <!-- Speedometer -->
+      <div class="speedo-card">
+        <div class="speedo-wrap">
+          <svg class="arc-svg" viewBox="0 0 300 165">
+            <defs>
+              <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#22d3a5"/>
+                <stop offset="55%" stop-color="#f59e0b"/>
+                <stop offset="100%" stop-color="#ef4444"/>
+              </linearGradient>
+            </defs>
+            <path d="M 24 155 A 126 126 0 0 1 276 155" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="12" stroke-linecap="round"/>
+            <path id="arcFill" d="M 24 155 A 126 126 0 0 1 276 155" fill="none" stroke="url(#arcGrad)" stroke-width="12" stroke-linecap="round" stroke-dasharray="396" stroke-dashoffset="396"/>
+            <line id="limitTick" x1="150" y1="30" x2="150" y2="18" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" transform="rotate(0 150 155)"/>
+            <line id="needle" x1="150" y1="155" x2="150" y2="40" stroke="#4fd1c5" stroke-width="3" stroke-linecap="round" transform="rotate(-90 150 155)"/>
+            <circle cx="150" cy="155" r="7" fill="#0f172a" stroke="#4fd1c5" stroke-width="2.5"/>
+            <text x="22" y="172" class="arc-lbl">0</text>
+            <text x="132" y="18" class="arc-lbl">100</text>
+            <text x="263" y="172" class="arc-lbl">200</text>
+          </svg>
+          <div class="speedo-center">
+            <div class="speed-val" id="speedVal">0</div>
+            <div class="speed-unit">km/h</div>
+            <div class="limit-pill" id="limitPill">Limit <strong id="limitNum">80</strong> km/h</div>
+          </div>
+        </div>
+        <div class="slider-group">
+          <label>Throttle</label>
+          <div class="slider-row">
+            <input type="range" id="speedSlider" min="0" max="200" value="0" step="1"/>
+            <span class="slider-out" id="speedOut">0</span>
+          </div>
+        </div>
+        <div class="slider-group">
+          <label>Speed Limit</label>
+          <div class="slider-row">
+            <input type="range" id="limitSlider" min="20" max="150" value="80" step="10"/>
+            <span class="slider-out" id="limitOut">80</span>
+          </div>
+        </div>
+        <div class="charge-row">
+          <label class="toggle-label">
+            <input type="checkbox" id="chargeToggle"/>
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            Charging
+          </label>
+          <button class="btn-reset" id="resetBtn">↺ Reset Trip</button>
+          <button class="btn-delete" id="deleteBtn">🗑 Remove</button>
+        </div>
+      </div>
+
+      <!-- Stat cards -->
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Battery</div>
+          <div class="stat-val" id="battVal">—</div>
+          <div class="batt-bar"><div class="batt-fill" id="battFill"></div></div>
+          <div class="stat-sub" id="battRange">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Motor Temp</div>
+          <div class="stat-val" id="tempVal">—</div>
+          <div class="temp-bar"><div class="temp-fill" id="tempFill"></div></div>
+          <div class="stat-sub" id="tempStatus">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Power Draw</div>
+          <div class="stat-val" id="powerVal">—</div>
+          <div class="stat-sub" id="powerSub">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Distance</div>
+          <div class="stat-val" id="distVal">—</div>
+          <div class="stat-sub" id="avgVal">—</div>
+        </div>
+      </div>
+
+      <!-- Event log -->
+      <div class="log-card">
+        <div class="log-hdr">
+          <span class="section-title" style="font-size:10px">Event Log</span>
+          <span class="log-count" id="logCount">0 events</span>
+        </div>
+        <div class="log-list" id="logList"><div class="log-empty">No events yet.</div></div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <span>EV Fleet Monitor v2.0</span>
+    <span id="footerTime"></span>
+  </footer>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
